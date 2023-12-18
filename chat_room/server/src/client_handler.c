@@ -92,11 +92,13 @@ static int LoginOrSignUpHandler(struct User *user) {
         }
 
         memset(response.client_message, 0, sizeof(response.client_message));
-        if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
+        if (recv(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: receiving Login or Sign up selection failed.\n");
             perror("recv");
             return -1;
         }
+        len = strlen(response.client_message);
+        response.client_message[len - 1] = '\0';
 
         /*
          * Handling client selection, Login or Sign up.
@@ -107,8 +109,7 @@ static int LoginOrSignUpHandler(struct User *user) {
                 fprintf(stderr, "Error: login failed.\n");
                 return -1;
             } else if (status == 1) {
-                fprintf(stderr, "Error: user can not be found.\n");
-                return -1;
+                continue;
             } else {
                 break;
             }
@@ -118,8 +119,7 @@ static int LoginOrSignUpHandler(struct User *user) {
                 fprintf(stderr, "Error: Sign up failed.\n");
                 return -1;
             } else if (status == 1) {
-                fprintf(stderr, "Error: user has existed.\n");
-                return -1;
+                continue;
             } else {
                 break;
             }

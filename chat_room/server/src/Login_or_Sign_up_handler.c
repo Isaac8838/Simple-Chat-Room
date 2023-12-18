@@ -29,11 +29,13 @@ int login(struct User *user) {
     }
 
     memset(response.client_message, 0, sizeof(response.client_message));
-    if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
+    if (recv(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: receiving name message from user failed.\n");
         perror("recv");
         return -1;
     }
+    len = strlen(response.client_message);
+    response.client_message[len - 1] = '\0';
     sprintf(name, response.client_message);
 
     /*
@@ -49,17 +51,19 @@ int login(struct User *user) {
     }
 
     memset(response.client_message, 0, sizeof(response.client_message));
-    if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
+    if (recv(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: receiving name message from user failed.\n");
         perror("recv");
         return -1;
     }
+    len = strlen(response.client_message);
+    response.client_message[len - 1] = '\0';
     sprintf(password, response.client_message);
 
     /*
      * search user from databse
      */
-    sprintf(query, "SELECT * FROM User WHERE name = '%s' AND password = '%s';", name, password);
+    sprintf(query, "SELECT * FROM users WHERE name = '%s' AND password = '%s';", name, password);
     if (mysql_query(user->db, query)) {
         fprintf(stderr, "Error: fetching user info from db: %s.\n", mysql_error(user->db));
         return -1;
@@ -74,7 +78,7 @@ int login(struct User *user) {
     MYSQL_ROW row = mysql_fetch_row(result);
     if (row == NULL) {
 
-        if (mysql_error(user->db)) {
+        if (strcmp(mysql_error(user->db), "")) {
             fprintf(stderr, "Error: fetching row: %s.\n", mysql_error(user->db));
             return -1;
         }
@@ -147,11 +151,13 @@ int signUp(struct User *user) {
     }
 
     memset(response.client_message, 0, sizeof(response.client_message));
-    if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
+    if (recv(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: receiving name message from user failed.\n");
         perror("recv");
         return -1;
     }
+    len = strlen(response.client_message);
+    response.client_message[len - 1] = '\0';
     sprintf(name, response.client_message);
 
     /*
@@ -167,17 +173,19 @@ int signUp(struct User *user) {
     }
 
     memset(response.client_message, 0, sizeof(response.client_message));
-    if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
+    if (recv(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: receiving name message from user failed\n");
         perror("recv");
         return -1;
     }
+    len = strlen(response.client_message);
+    response.client_message[len - 1] = '\0';
     sprintf(password, response.client_message);
 
     /*
      * search user from database
      */
-    sprintf(query, "SELECT * FROM User WHERE name = '%s';", name);
+    sprintf(query, "SELECT * FROM users WHERE name = '%s';", name);
     if (mysql_query(user->db, query)) {
         fprintf(stderr, "Error: fetching user info from db: %s.\n", mysql_error(user->db));
         return -1;
@@ -192,7 +200,7 @@ int signUp(struct User *user) {
     MYSQL_ROW row = mysql_fetch_row(result);
     if (row == NULL) {
 
-        if (mysql_error(user->db)) {
+        if (strcmp(mysql_error(user->db), "") != 0) {
             fprintf(stderr, "Error: fetching row: %s.\n", mysql_error(user->db));
             return -1;
         }
@@ -201,7 +209,7 @@ int signUp(struct User *user) {
          * Update User table
          */
         memset(query, 0, sizeof(query));
-        sprintf(query, "INSERT INTO User(name, password, id) VALUES('%s', '%s', %d);", name, password, user->id);
+        sprintf(query, "INSERT INTO users(name, password, id) VALUES('%s', '%s', %d);", name, password, user->id);
         if (mysql_query(user->db, query)) {
             fprintf(stderr, "Error: updating user info to User table: %s.", mysql_error(user->db));
             return -1;
@@ -233,7 +241,7 @@ int signUp(struct User *user) {
     } else {
 
         memset(response.server_message, 0, sizeof(response.server_message));
-        sprintf(response.server_message, "%s has been registered.\n", name);
+        sprintf(response.server_message, "User has been registered.\n");
         response.method = SERVER_MESSAGE;
         if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: sending sign up user name has been registered failed.\n");

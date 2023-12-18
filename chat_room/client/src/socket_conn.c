@@ -7,7 +7,7 @@
 int sockConnection(struct sockaddr_in *server) {
     int sockfd;
 
-    memset(&server, 0, sizeof(struct sockaddr_in));
+    memset(&(*server), 0, sizeof(struct sockaddr_in));
     server->sin_family = PF_INET;
     server->sin_port = htons(PORT);
     inet_aton("127.0.0.1", &(server->sin_addr));
@@ -24,7 +24,7 @@ int sockConnection(struct sockaddr_in *server) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Connecting to server: %s:%u", inet_ntoa(server->sin_addr), ntohs(server->sin_port));
+    printf("Connecting to server: %s:%u\n", inet_ntoa(server->sin_addr), ntohs(server->sin_port));
 
     return sockfd;
 }
