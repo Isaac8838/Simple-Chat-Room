@@ -1,6 +1,8 @@
 #include "../include/client.h"
 #include "../include/socket_conn.h"
 
+static int LoginOrSignUpHandler();
+
 int main() {
     int client_socket;
     struct sockaddr_in server;
@@ -15,4 +17,8 @@ int main() {
 
     close(client_socket);
     return 0;
+}
+
+static int LoginOrSignUpHandler() {
+
 }
