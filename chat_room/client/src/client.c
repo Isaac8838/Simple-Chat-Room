@@ -1,7 +1,7 @@
 #include "../include/client.h"
 #include "../include/socket_conn.h"
 
-static int LoginOrSignUpHandler();
+static int LoginOrSignUpHandler(int sockfd);
 
 int main() {
     int client_socket;
@@ -19,6 +19,10 @@ int main() {
     return 0;
 }
 
-static int LoginOrSignUpHandler() {
+static int LoginOrSignUpHandler(int sockfd) {
+    struct Response response;
 
+    while (1) {
+
+    }
 }
