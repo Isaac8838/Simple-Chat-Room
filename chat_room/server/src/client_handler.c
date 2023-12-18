@@ -85,14 +85,14 @@ static int LoginOrSignUpHandler(struct User *user) {
         memset(response.server_message, 0, sizeof(response.server_message));
         response.method = LOGIN_OR_SIGNUP;
         sprintf(response.server_message, "Login or Sign up [1/2]? ");
-        if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+        if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: login or sign up message failed.\n");
             perror("send");
             return -1;
         }
 
         memset(response.client_message, 0, sizeof(response.client_message));
-        if ((len = recv(user->sockfd, &response, sizeof(response), 0)) < 0) {
+        if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
             fprintf(stderr, "Error: receiving Login or Sign up selection failed.\n");
             perror("recv");
             return -1;
