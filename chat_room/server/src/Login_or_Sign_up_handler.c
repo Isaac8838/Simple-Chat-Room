@@ -22,14 +22,14 @@ int login(struct User *user) {
     memset(response.server_message, 0, sizeof(response.server_message));
     sprintf(response.server_message, "name: ");
     response.method = LOGIN_OR_SIGNUP;
-    if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+    if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: sending name message to user failed.\n");
         perror("send");
         return -1;
     }
 
     memset(response.client_message, 0, sizeof(response.client_message));
-    if ((len = recv(user->sockfd, &response, sizeof(response), 0)) < 0) {
+    if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
         fprintf(stderr, "Error: receiving name message from user failed.\n");
         perror("recv");
         return -1;
@@ -42,14 +42,14 @@ int login(struct User *user) {
     memset(response.server_message, 0, sizeof(response.server_message));
     sprintf(response.server_message, "password: ");
     response.method = LOGIN_OR_SIGNUP;
-    if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+    if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: sending password message to user failed.\n");
         perror("send");
         return -1;
     }
 
     memset(response.client_message, 0, sizeof(response.client_message));
-    if ((len = recv(user->sockfd, &response, sizeof(response), 0)) < 0) {
+    if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
         fprintf(stderr, "Error: receiving name message from user failed.\n");
         perror("recv");
         return -1;
@@ -82,7 +82,7 @@ int login(struct User *user) {
         memset(response.server_message, 0, sizeof(response.server_message));
         sprintf(response.server_message, "User doesn't exsit.\n");
         response.method = SERVER_MESSAGE;
-        if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+        if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: sending login user exist failed.\n");
             perror("send");
             return -1;
@@ -109,7 +109,7 @@ int login(struct User *user) {
         memset(response.server_message, 0, sizeof(response.server_message));
         sprintf(response.server_message, "Login successfully!\n");
         response.method = SERVER_MESSAGE;
-        if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+        if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: sending successful login message failed.\n");
             perror("send");
             return -1;
@@ -140,14 +140,14 @@ int signUp(struct User *user) {
     memset(response.server_message, 0, sizeof(response.server_message));
     sprintf(response.server_message, "name: ");
     response.method = LOGIN_OR_SIGNUP;
-    if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+    if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: sending name message to user failed.\n");
         perror("send");
         return -1;
     }
 
     memset(response.client_message, 0, sizeof(response.client_message));
-    if ((len = recv(user->sockfd, &response, sizeof(response), 0)) < 0) {
+    if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
         fprintf(stderr, "Error: receiving name message from user failed.\n");
         perror("recv");
         return -1;
@@ -160,14 +160,14 @@ int signUp(struct User *user) {
     memset(response.server_message, 0, sizeof(response.server_message));
     sprintf(response.server_message, "password: ");
     response.method = LOGIN_OR_SIGNUP;
-    if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+    if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: sending password message to user failed.\n");
         perror("send");
         return -1;
     }
 
     memset(response.client_message, 0, sizeof(response.client_message));
-    if ((len = recv(user->sockfd, &response, sizeof(response), 0)) < 0) {
+    if ((len = recv(user->sockfd, &response, sizeof(struct Response), 0)) < 0) {
         fprintf(stderr, "Error: receiving name message from user failed\n");
         perror("recv");
         return -1;
@@ -224,7 +224,7 @@ int signUp(struct User *user) {
         memset(response.server_message, 0, sizeof(response.server_message));
         sprintf(response.server_message, "Sign up successfully!\n");
         response.method = SERVER_MESSAGE;
-        if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+        if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: sending successful sign up message failed.\n");
             perror("send");
             return -1;
@@ -235,7 +235,7 @@ int signUp(struct User *user) {
         memset(response.server_message, 0, sizeof(response.server_message));
         sprintf(response.server_message, "%s has been registered.\n", name);
         response.method = SERVER_MESSAGE;
-        if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+        if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: sending sign up user name has been registered failed.\n");
             perror("send");
             return -1;
