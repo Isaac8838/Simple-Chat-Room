@@ -15,11 +15,11 @@
 
 struct Message;
 struct Response;
+struct Request;
 
 /*
  * message structure
  */
-
 struct Message {
     char    **names;
     char    **messages;
@@ -31,13 +31,19 @@ struct Message {
 /*
  * response structure
  */
-
 struct Response {
     char    server_message[BUFSIZ];
     char    client_message[BUFSIZ];
     struct  Message message[100];
     int     method;
     int     user_id;
+};
+
+/*
+ * request structure
+ */
+struct Request {
+    char request[BUFSIZ];
 };
 
 #endif

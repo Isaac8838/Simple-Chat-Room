@@ -3,6 +3,6 @@
 
 #include "client.h"
 
-int serverHandler();
+int serverHandler(int sockfd);
 
 #endif
