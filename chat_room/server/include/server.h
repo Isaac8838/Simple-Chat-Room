@@ -42,10 +42,10 @@ struct User {
  * message structure
  */
 struct Message {
-    char    names[BUFSIZ];
+    char    names[255];
     char    messages[BUFSIZ];
-    char    groups[BUFSIZ];
-    char    users[BUFSIZ];
+    char    groups[255];
+    char    users[255];
     char    mails[BUFSIZ];
 };
 
@@ -53,8 +53,8 @@ struct Message {
  * response structure
  */
 struct Response {
-    char    server_message[BUFSIZ];
-    char    client_message[BUFSIZ];
+    char    server_message[BUFSIZ + BUFSIZ];
+    char    client_message[BUFSIZ + BUFSIZ];
     struct  Message *message;
     int     method;
     int     user_id;

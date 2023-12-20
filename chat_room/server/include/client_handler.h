@@ -58,6 +58,6 @@ void commandHandler(struct User *user, struct Command *cmd);
 /*
  * message handler
  */
-void messageHandler(struct User *user, char *message);
+void messageHandler(struct User *user, int group_id, char *message);
 
 #endif

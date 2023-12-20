@@ -42,7 +42,7 @@ void* clientHandler(void* arg) {
     }
 
     struct Request  req;
-    struct Response res;
+    // struct Response res;
     struct Command  cmd;
     int             len;
 
@@ -52,7 +52,7 @@ void* clientHandler(void* arg) {
          * receiving request from user
          */
         if (recv(user.sockfd, &req, sizeof(struct Request), 0) < 0) {
-            fpritnf(stderr, "Error: receiving user request from client handler failed.\n");
+            fprintf(stderr, "Error: receiving user request from client handler failed.\n");
             perror("recv");
             break;
         }
@@ -66,7 +66,7 @@ void* clientHandler(void* arg) {
             commandParser(&req, &cmd);
             commandHandler(&user, &cmd);
         } else {
-            messageHandler(&user, req.request);
+            messageHandler(&user, user.group_id, req.request);
         }
 
     }

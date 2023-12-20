@@ -30,7 +30,7 @@ void commandHandler(struct User *user, struct Command *cmd) {
              * Sending  successful creating group message to client.
              */
             memset(res.server_message, 0, sizeof(res.server_message));
-            sprintf(res.server_message, "group %s creates successfully\n");
+            sprintf(res.server_message, "group %s creates successfully\n", cmd->arg);
             res.method = SERVER_MESSAGE;
             if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {
                 fprintf(stderr, "Error: sending successful creating group message failed.\n");
@@ -40,7 +40,7 @@ void commandHandler(struct User *user, struct Command *cmd) {
 
         }
     } else if (cmd->type == LIST_GROUP) {
-        if (listGroupHandler(&user, cmd->arg) < 0) {
+        if (listGroupHandler(&(*user), cmd->arg) < 0) {
             fprintf(stderr, "Error: listing group is failed.\n");
             
             /*
@@ -158,7 +158,7 @@ static int listGroupHandler(struct User *user, char *arg) {
     }
 
     if (mysql_query(user->db, query_count)) {
-        fprintf(stderr, "Error: getting number of rows in group lists failed: %s.\n", user->db);
+        fprintf(stderr, "Error: getting number of rows in group lists failed: %s.\n", mysql_error(user->db));
         return -1;
     }
 
