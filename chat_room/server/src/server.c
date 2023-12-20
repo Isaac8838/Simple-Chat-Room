@@ -38,7 +38,7 @@ int main() {
         int id = unusedID();
 
         struct User *user = malloc(sizeof(struct User));
-        *user = (struct User){"None", id, -1, client_socket, NULL};
+        *user = (struct User){"none", id, -1, -1, -1, client_socket, NULL};
 
         /*
          * Creating a new thread to serve client

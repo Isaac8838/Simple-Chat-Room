@@ -22,6 +22,8 @@ extern pthread_mutex_t  mutex;
 struct User;
 struct Message;
 struct Response;
+struct Request;
+struct Command;
 
 /*
  * user structure
@@ -29,6 +31,8 @@ struct Response;
 struct User {
     char    name[255];
     int     id;
+    int     user_id;
+    int     group_id;
     int     status;
     int     sockfd;
     MYSQL   *db;
@@ -38,11 +42,11 @@ struct User {
  * message structure
  */
 struct Message {
-    char    **names;
-    char    **messages;
-    char    **groups;
-    char    **users;
-    char    **mails;
+    char    names[BUFSIZ];
+    char    messages[BUFSIZ];
+    char    groups[BUFSIZ];
+    char    users[BUFSIZ];
+    char    mails[BUFSIZ];
 };
 
 /*
@@ -51,10 +55,24 @@ struct Message {
 struct Response {
     char    server_message[BUFSIZ];
     char    client_message[BUFSIZ];
-    struct  Message message[100];
+    struct  Message *message;
     int     method;
     int     user_id;
 };
 
+/*
+ * request structure
+ */
+struct Request {
+    char request[BUFSIZ];
+};
+
+/*
+ * command structure
+ */
+struct Command {
+    int type;
+    char arg[BUFSIZ];
+};
 
 #endif

@@ -2,6 +2,7 @@
 
 static int databaseConnection(MYSQL **db);
 static int LoginOrSignUpHandler(struct User *user);
+static void commandParser(struct Request *req, struct Command *cmd);
 
 
 /*
@@ -10,6 +11,8 @@ static int LoginOrSignUpHandler(struct User *user);
  * 
  * When client logout
  * it exit by it self without join.
+ * 
+ * If error happend, client handler will end the service.
  */
 void* clientHandler(void* arg) {
     pthread_detach(pthread_self());
@@ -36,6 +39,36 @@ void* clientHandler(void* arg) {
         has_registered[user.id] = 0;
         User_online--;
         pthread_exit(NULL);
+    }
+
+    struct Request  req;
+    struct Response res;
+    struct Command  cmd;
+    int             len;
+
+    while (1) {
+
+        /*
+         * receiving request from user
+         */
+        if (recv(user.sockfd, &req, sizeof(struct Request), 0) < 0) {
+            fpritnf(stderr, "Error: receiving user request from client handler failed.\n");
+            perror("recv");
+            break;
+        }
+        len = strlen(req.request);
+        req.request[len - 1] = '\0';
+
+        /*
+         * Directing request to command handler or message handler.
+         */
+        if (req.request[0] == '!') {
+            commandParser(&req, &cmd);
+            commandHandler(&user, &cmd);
+        } else {
+            messageHandler(&user, req.request);
+        }
+
     }
 
     has_registered[user.id] = 0;
@@ -127,4 +160,47 @@ static int LoginOrSignUpHandler(struct User *user) {
     }
 
     return 0;
+}
+
+/*
+ * Parsing user request to command structure.
+ */
+static void commandParser(struct Request *req, struct Command *cmd) {
+    char type[BUFSIZ];
+    memset(type, 0, sizeof(type));
+
+    if (sscanf(req->request, "!%s %s", type, cmd->arg) == 1) {
+        sprintf(cmd->arg, "none");
+    }
+
+    /*
+     * Assigning type value accroding to user request
+     * If no request doesn't match existing command
+     * then assign command not found type.
+     */
+    if (strcmp(type, "create_group") == 0) {
+        cmd->type = CREATE_GROUP;
+    } else if (strcmp(type, "list_group") == 0) {
+        cmd->type = LIST_GROUP;
+    } else if (strcmp(type, "join_group") == 0) {
+        cmd->type = JOIN_GROUP;
+    } else if (strcmp(type, "logout") == 0) {
+        cmd->type = LOGOUT;
+    } else if (strcmp(type, "leave_group") == 0) {
+        cmd->type = LEAVE_GROUP;
+    } else if (strcmp(type, "list_user") == 0) {
+        cmd->type = LIST_USER;
+    } else if (strcmp(type, "invite") == 0) {
+        cmd->type = INVITE;
+    } else if (strcmp(type, "delete_group") == 0) {
+        cmd->type = DELETE_GROUP;
+    } else if (strcmp(type, "list_mail") == 0) {
+        cmd->type = LIST_MAIL;
+    } else if (strcmp(type, "mailto") == 0) {
+        cmd->type = MAILTO;
+    } else if (strcmp(type, "help") == 0) {
+        cmd->type = HELP;
+    } else {
+        cmd->type = COMMAND_NOT_FOUND;
+    }
 }
