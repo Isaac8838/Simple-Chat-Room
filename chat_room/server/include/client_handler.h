@@ -13,14 +13,6 @@
 #define MAIL    2
 
 /*
- * type of method
- */
-
-#define SERVER_MESSAGE  0
-#define CLIENT_MESSAGE  1
-#define LOGIN_OR_SIGNUP 3
-
-/*
  * type of command
  */
 #define CREATE_GROUP 0
@@ -35,6 +27,9 @@
 #define MAILTO 9
 #define HELP 10
 #define COMMAND_NOT_FOUND 11
+#define SERVER_MESSAGE  12
+#define CLIENT_MESSAGE  13
+#define LOGIN_OR_SIGNUP 14
 
 /* 
  * client handler for handle client's commands or messages 
@@ -53,7 +48,7 @@ int signUp(struct User *user);
 /*
  * command handler
  */
-void commandHandler(struct User *user, struct Command *cmd);
+int commandHandler(struct User *user, struct Command *cmd);
 
 /*
  * message handler

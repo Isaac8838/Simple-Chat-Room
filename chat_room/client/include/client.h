@@ -21,22 +21,23 @@ struct Request;
  * message structure
  */
 struct Message {
-    char    **names;
-    char    **messages;
-    char    **groups;
-    char    **users;
-    char    **mails;
+    char    names[255];
+    char    messages[BUFSIZ];
+    char    groups[255];
+    char    users[255];
+    char    mails[BUFSIZ];
 };
 
 /*
  * response structure
  */
 struct Response {
-    char    server_message[BUFSIZ];
-    char    client_message[BUFSIZ];
-    struct  Message message[100];
+    char    server_message[BUFSIZ + BUFSIZ];
+    char    client_message[BUFSIZ + BUFSIZ];
+    struct  Message message;
     int     method;
     int     user_id;
+    int     number_of_messages;
 };
 
 /*

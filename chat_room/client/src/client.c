@@ -1,4 +1,5 @@
 #include "../include/client.h"
+#include "../include/server_handler.h"
 #include "../include/socket_conn.h"
 
 static int LoginOrSignUpHandler(int sockfd);
@@ -14,7 +15,10 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    
+    if (serverHandler(client_socket) < 0) {
+        fprintf(stderr, "Error: server handler failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     close(client_socket);
     return 0;
@@ -38,6 +42,7 @@ static int LoginOrSignUpHandler(int sockfd) {
         /*
          * receiving server response for Login or Sign up.
          */
+        memset(&response, 0, sizeof(struct Response));
         if (recv(sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: get server Login or Sign up message failed.\n");
             perror("recv");
@@ -73,7 +78,7 @@ static int LoginOrSignUpHandler(int sockfd) {
         /*
          * setting client message to response
          */
-        memset(response.client_message, 0, sizeof(response.client_message));
+        memset(&response, 0, sizeof(struct Response));
         sprintf(response.client_message, client_message);
 
         /*

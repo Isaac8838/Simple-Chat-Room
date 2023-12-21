@@ -45,6 +45,7 @@ void* clientHandler(void* arg) {
     // struct Response res;
     struct Command  cmd;
     int             len;
+    int             status;
 
     while (1) {
 
@@ -64,9 +65,16 @@ void* clientHandler(void* arg) {
          */
         if (req.request[0] == '!') {
             commandParser(&req, &cmd);
-            commandHandler(&user, &cmd);
+            
+            if ((status = commandHandler(&user, &cmd)) < 0) {
+                fprintf(stderr, "Error: handling command failed.\n");
+                break;
+            } else if (status > 0) {
+                break;
+            }
+
         } else {
-            messageHandler(&user, user.group_id, req.request);
+            // messageHandler(&user, user.group_id, req.request);
         }
 
     }
@@ -115,7 +123,7 @@ static int LoginOrSignUpHandler(struct User *user) {
         /*
          * 1 for Login, 2 for Sign up.
          */
-        memset(response.server_message, 0, sizeof(response.server_message));
+        memset(&response, 0, sizeof(struct Response));
         response.method = LOGIN_OR_SIGNUP;
         sprintf(response.server_message, "Login or Sign up [1/2]? ");
         if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
@@ -124,7 +132,7 @@ static int LoginOrSignUpHandler(struct User *user) {
             return -1;
         }
 
-        memset(response.client_message, 0, sizeof(response.client_message));
+        memset(&response, 0, sizeof(struct Response));
         if (recv(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
             fprintf(stderr, "Error: receiving Login or Sign up selection failed.\n");
             perror("recv");

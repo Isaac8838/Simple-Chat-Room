@@ -13,7 +13,7 @@ void messageHandler(struct User *user, int group_id, char *message) {
      */
     if (user->status != GROUP) {
         
-        memset(res.server_message, 0, sizeof(res.server_message));
+        memset(&res, 0, sizeof(struct Response));
         sprintf(res.server_message, "You need to join a group!\n");
         res.method = SERVER_MESSAGE;
         if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {
@@ -33,7 +33,7 @@ void messageHandler(struct User *user, int group_id, char *message) {
     if (mysql_query(user->db, query)) {
         fprintf(stderr, "Error: inserting message to group messages falied: %s.\n", mysql_error(user->db));
         
-        memset(res.server_message, 0, sizeof(res.server_message));
+        memset(&res, 0, sizeof(struct Response));
         sprintf(res.server_message, "Couldn't send message to group.\n");
         res.method = SERVER_MESSAGE;
         if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {

@@ -55,9 +55,10 @@ struct Message {
 struct Response {
     char    server_message[BUFSIZ + BUFSIZ];
     char    client_message[BUFSIZ + BUFSIZ];
-    struct  Message *message;
+    struct  Message message;
     int     method;
     int     user_id;
+    int     number_of_messages;
 };
 
 /*
