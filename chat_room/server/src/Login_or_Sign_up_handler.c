@@ -209,22 +209,9 @@ int signUp(struct User *user) {
          * Update User table
          */
         memset(query, 0, sizeof(query));
-        sprintf(query, "INSERT INTO users(name, password) VALUES('%s', '%s'); "
-                       "SELECT LAST_INSERT_ID();", name, password);
+        sprintf(query, "INSERT INTO users(name, password) VALUES('%s', '%s'); ", name, password);
         if (mysql_query(user->db, query)) {
-            fprintf(stderr, "Error: updating user info to User table: %s.", mysql_error(user->db));
-            return -1;
-        }
-
-        result = mysql_store_result(user->db);
-        if (result == NULL) {
-            fprintf(stderr, "Error: fetching result from users failed: %s.\n", mysql_error(user->db));
-            return -1;
-        }
-
-        row = mysql_fetch_row(result);
-        if (mysql_errno(user->db) != 0) {
-            fprintf(stderr, "Error: fetching row from users failed: %s.\n", mysql_error(user->db));
+            fprintf(stderr, "Error: updating user info to User table: %s.\n", mysql_error(user->db));
             return -1;
         }
 
@@ -237,7 +224,7 @@ int signUp(struct User *user) {
          * Update user status
          */        
         user->status = USER;
-        user->user_id = atoi(row[0]);
+        user->user_id = mysql_insert_id(user->db);
 
         /*
          * Sending sucessful login message
