@@ -117,16 +117,16 @@ static int databaseConnection(MYSQL **db) {
 static int LoginOrSignUpHandler(struct User *user) {
     int len;
     struct Response response;
+    struct Request  request;
 
     while (1) {
 
         /*
          * 1 for Login, 2 for Sign up.
          */
-        memset(&response, 0, sizeof(struct Response));
-        response.method = LOGIN_OR_SIGNUP;
-        sprintf(response.server_message, "Login or Sign up [1/2]? ");
-        if (send(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
+        memset(&request, 0, sizeof(struct Request));
+        sprintf(request.request, "Login or Sign up [1/2]? ");
+        if (send(user->sockfd, &request, sizeof(request), 0) < 0) {
             fprintf(stderr, "Error: login or sign up message failed.\n");
             perror("send");
             return -1;

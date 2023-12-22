@@ -154,6 +154,18 @@ static int listGroupHandler(struct User *user, char *arg) {
     MYSQL_ROW       rows;
 
     /*
+     * Sending list group method
+     */
+    memset(&res, 0, sizeof(struct Response));
+    res.method = LIST_GROUP;
+    if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+        fprintf(stderr, "Error: sending group list method failed.\n");
+        perror("send");
+        return -1;
+    }
+
+
+    /*
      * Getting the number of groups
      * If with "self" argument
      * fetching the group that have joined
@@ -161,8 +173,8 @@ static int listGroupHandler(struct User *user, char *arg) {
      */
     memset(query, 0, sizeof(query));
     if (strcmp(arg, "self") == 0) {
-        sprintf(query, "SELECT COUNT(*) FROM user_groups"
-                       "JOIN group_lists ON group_lists.id = user_groups.group_id"
+        sprintf(query, "SELECT group_name, owner FROM user_groups "
+                       "JOIN group_lists ON group_lists.id = user_groups.group_id "
                        "WHERE user_id = %d;", user->user_id);
     } else if (strcmp(arg, "none") == 0) {
         sprintf(query, "SELECT group_name, owner FROM group_lists;");
@@ -188,7 +200,7 @@ static int listGroupHandler(struct User *user, char *arg) {
     memset(&res, 0, sizeof(struct Response));
     sprintf(res.server_message, "start list");
     res.method = LIST_GROUP;
-    if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {
+    if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
         fprintf(stderr, "Error: sending start response from group lists is failed.\n");
         perror("send");
         return -1;
@@ -208,7 +220,7 @@ static int listGroupHandler(struct User *user, char *arg) {
         sprintf(res.message.groups, rows[0]);
         sprintf(res.message.names, rows[1]);
         
-        if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {
+        if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
             fprintf(stderr, "Error: sending response from group lists is failed.\n");
             perror("send");
             return -1;
@@ -222,7 +234,7 @@ static int listGroupHandler(struct User *user, char *arg) {
     memset(&res, 0, sizeof(struct Response));
     sprintf(res.server_message, "end list");
     res.method = LIST_GROUP;
-    if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {
+    if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
         fprintf(stderr, "Error: sending response from group lists is failed.\n");
         perror("send");
         return -1;
@@ -237,17 +249,29 @@ static int listGroupHandler(struct User *user, char *arg) {
  * return -1 for error, otherwise 0.
  */
 static int logout(struct User *user) {
+    struct Response res;
+    struct Request  req;
     user->status = USER;
     user->group_id = -1;
 
     /*
+     * Sending logout method
+     */
+    memset(&res, 0, sizeof(struct Response));
+    res.method = LOGOUT;
+    if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+        fprintf(stderr, "Error: sending logout method failed.\n");
+        perror("send");
+        return -1;
+    }
+
+    /*
      * Sending logout successful message to user.
      */
-    struct Response res;
     memset(&res, 0, sizeof(struct Response));
     sprintf(res.server_message, "You have successfully logout!.\n");
     res.method = LOGOUT;
-    if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {
+    if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
         fprintf(stderr, "Error: sending logout successful message failed.\n");
         perror("send");
         return -1;
@@ -257,10 +281,9 @@ static int logout(struct User *user) {
     /*
      * Sending confirmation message to client and end the client handler.
      */
-    memset(&res, 0, sizeof(struct Response));
-    sprintf(res.server_message, "close");
-    res.method = LOGOUT;
-    if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {
+    memset(&req, 0, sizeof(struct Request));
+    sprintf(req.request, "close");
+    if (send(user->sockfd, &req, sizeof(req), 0) < 0) {
         fprintf(stderr, "Error: sending close message failed.\n");
         perror("send");
         return -1;

@@ -1,8 +1,8 @@
 #include "../include/server_handler.h"
 
 static void serverMessageHandler(int sockfd, struct Response *res);
-static int logoutHandler(int sockfd, struct Response *res);
-static int listGroupHandler(int sockfd, struct Response *res);
+static int logoutHandler(int sockfd);
+static int listGroupHandler(int sockfd);
 
 /*
  * Handling user request and response from server.
@@ -49,7 +49,7 @@ int serverHandler(int sockfd) {
 
         } else if (res.method == LOGOUT) {
 
-            if (logoutHandler(sockfd, &res) < 0) {
+            if (logoutHandler(sockfd) < 0) {
                 fprintf(stderr, "Error: couldn't logout, please try again.\n");
                 return -1;
             } else {
@@ -58,8 +58,9 @@ int serverHandler(int sockfd) {
 
         } else if (res.method == LIST_GROUP) {
 
-            if (listGroupHandler(sockfd, &res) < 0) {
-
+            if (listGroupHandler(sockfd) < 0) {
+                fprintf(stderr, "Error: couldn't printing, please try again.\n");
+                return -1;
             }
 
         }
@@ -80,17 +81,32 @@ static void serverMessageHandler(int sockfd, struct Response *res) {
  * Handling client logout action
  * return -1 for error, otherwise return 0.
  */
-static int logoutHandler(int sockfd, struct Response *res) {
+static int logoutHandler(int sockfd) {
+    struct Response res;
+    struct Request  req;
 
-    printf("%s", res->server_message);
-
-    if (recv(sockfd, &(*res), sizeof(struct Response), 0) < 0) {
+    /*
+     * Receiving logout successfully message from server
+     */
+    if (recv(sockfd, &res, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: receiving logout message from server failed.\n");
         perror("recv");
         return -1;
     }
+    printf("%s", res.server_message);
 
-    if (strcmp(res->server_message, "close") == 0) {
+    /*
+     * Receiving close message from server
+     * If message match "close" string
+     * return 0 for end the client, otherwise -1.
+     */
+    memset(&req, 0, sizeof(struct Request));
+    if (recv(sockfd, &req, sizeof(struct Request), 0) < 0) {
+        fprintf(stderr, "Error: receiving logout message from server failed.\n");
+        perror("recv");
+        return -1;
+    }
+    if (strcmp(req.request, "close") == 0) {
         return 0;
     } else {
         fprintf(stderr, "Error: the response message from server doesn't match.\n");
@@ -102,27 +118,36 @@ static int logoutHandler(int sockfd, struct Response *res) {
 }
 
 /*
- * printing groups.
+ * Printing groups.
+ * return -1 for error, otherwise return 0.
  */
-static int listGroupHandler(int sockfd, struct Response *res) {
+static int listGroupHandler(int sockfd) {
+    struct Response res;
+    
+    memset(&res, 0, sizeof(struct Response));
+    if (recv(sockfd, &res, sizeof(struct Response), 0) < 0) {
+        fprintf(stderr, "Error: receiving start lists message failed.\n");
+        perror("recv");
+        return -1;
+    }
 
-    if (strcmp(res->server_message, "start list") == 0) {
+    if (strcmp(res.server_message, "start list") == 0) {
 
         printf("group name\t\towner\n");
 
         while (1) {
 
-            if (recv(sockfd, &(*res), sizeof(struct Response), 0) < 0) {
+            if (recv(sockfd, &res, sizeof(struct Response), 0) < 0) {
                 fprintf(stderr, "Error: receiving group lists from server failed.\n");
                 perror("recv");
                 return -1;
             }
 
-            if (strcmp(res->server_message, "end list") == 0) {
+            if (strcmp(res.server_message, "end list") == 0) {
                 break;
             }
 
-            printf("%s\t\t%s\n", res->message.groups, res->message.names);
+            printf("%s\t\t%s\n", res.message.groups, res.message.names);
 
         }
 
