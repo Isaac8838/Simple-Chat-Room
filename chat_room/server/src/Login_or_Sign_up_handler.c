@@ -216,13 +216,9 @@ int signUp(struct User *user) {
         }
 
         /*
-         * Update user name
+         * Update user status
          */
         sprintf(user->name, name);
-
-        /*
-         * Update user status
-         */        
         user->status = USER;
         user->user_id = mysql_insert_id(user->db);
 
