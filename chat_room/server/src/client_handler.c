@@ -34,12 +34,20 @@ void* clientHandler(void* arg) {
     /*
      * Handling user login or sign up
      */
-    if (LoginOrSignUpHandler(&user) < 0) {
-        fprintf(stderr, "Error: login or sign up failed.\n");
-        has_registered[user.id] = 0;
-        User_online--;
-        pthread_exit(NULL);
+    while (1) {
+        int status;
+        if ((status = LoginOrSignUpHandler(&user)) < 0) {
+            fprintf(stderr, "Error: login or sign up failed.\n");
+            has_registered[user.id] = 0;
+            User_online--;
+            pthread_exit(NULL);
+        } else if (status == 1) {
+            continue;
+        } else {
+            break;
+        }
     }
+    
 
     struct Request  req;
     // struct Response res;
@@ -119,55 +127,83 @@ static int LoginOrSignUpHandler(struct User *user) {
     struct Response response;
     struct Request  request;
 
-    while (1) {
 
-        /*
-         * 1 for Login, 2 for Sign up.
-         */
-        memset(&request, 0, sizeof(struct Request));
-        sprintf(request.request, "Login or Sign up [1/2]? ");
-        if (send(user->sockfd, &request, sizeof(request), 0) < 0) {
-            fprintf(stderr, "Error: login or sign up message failed.\n");
+    /*
+        * 1 for Login, 2 for Sign up.
+        */
+    memset(&request, 0, sizeof(struct Request));
+    sprintf(request.request, "Login or Sign up [1/2]? ");
+    if (send(user->sockfd, &request, sizeof(request), 0) < 0) {
+        fprintf(stderr, "Error: login or sign up message failed.\n");
+        perror("send");
+        return -1;
+    }
+
+    memset(&response, 0, sizeof(struct Response));
+    if (recv(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
+        fprintf(stderr, "Error: receiving Login or Sign up selection failed.\n");
+        perror("recv");
+        return -1;
+    }
+    len = strlen(response.client_message);
+    if (len > 0 && response.client_message[len - 1] == '\n') {
+        response.client_message[len - 1] = '\0';
+    }
+
+    /*
+        * Handling client selection, Login or Sign up.
+        */
+    if (strcmp(response.client_message, "1") == 0) {
+
+        memset(&response, 0, sizeof(struct Response));
+        sprintf(response.server_message, "valid");
+        if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+            fprintf(stderr, "Error: sending vaild command to user failed.\n");
             perror("send");
             return -1;
         }
 
+        int status;
+        if ((status = login(&(*user))) < 0) {
+            fprintf(stderr, "Error: login failed.\n");
+            return -1;
+        } else if (status == 1) {
+            return 1;
+        } else {
+            return 0;
+        }
+    } else if (strcmp(response.client_message, "2") == 0) {
+
         memset(&response, 0, sizeof(struct Response));
-        if (recv(user->sockfd, &response, sizeof(struct Response), 0) < 0) {
-            fprintf(stderr, "Error: receiving Login or Sign up selection failed.\n");
-            perror("recv");
+        sprintf(response.server_message, "valid");
+        if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+            fprintf(stderr, "Error: sending invaild command to user failed.\n");
+            perror("send");
             return -1;
         }
-        len = strlen(response.client_message);
-        response.client_message[len - 1] = '\0';
 
-        /*
-         * Handling client selection, Login or Sign up.
-         */
-        if (strcmp(response.client_message, "1") == 0) {
-            int status;
-            if ((status = login(&(*user))) < 0) {
-                fprintf(stderr, "Error: login failed.\n");
-                return -1;
-            } else if (status == 1) {
-                continue;
-            } else {
-                break;
-            }
-        } else if (strcmp(response.client_message, "2") == 0) {
-            int status;
-            if ((status = signUp(&(*user))) < 0) {
-                fprintf(stderr, "Error: Sign up failed.\n");
-                return -1;
-            } else if (status == 1) {
-                continue;
-            } else {
-                break;
-            }
+        int status;
+        if ((status = signUp(&(*user))) < 0) {
+            fprintf(stderr, "Error: Sign up failed.\n");
+            return -1;
+        } else if (status == 1) {
+            return 1;
+        } else {
+            return 0;
         }
+    } else {
+        memset(&response, 0, sizeof(struct Response));
+        sprintf(response.server_message, "invalid");
+        if (send(user->sockfd, &response, sizeof(response), 0) < 0) {
+            fprintf(stderr, "Error: sending invaild command to user failed.\n");
+            perror("send");
+            return -1;
+        }
+        return 1;
     }
+    
 
-    return 0;
+    return -1;
 }
 
 /*

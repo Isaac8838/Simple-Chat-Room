@@ -14,14 +14,16 @@ int commandHandler(struct User *user, struct Command *cmd) {
     struct Response res;
 
     if (cmd->type == CREATE_GROUP) {
-        if (createGroupHandler(&(*user), cmd->arg) < 0) {
+        int status;
+        if ((status = createGroupHandler(&(*user), cmd->arg)) < 0) {
             fprintf(stderr, "Error: creating a new group failed.\n");
 
             /*
              * Sending fail creating group message to client.
              */
             memset(&res, 0, sizeof(struct Response));
-            sprintf(res.server_message, "Couldn't create a group. The group name might be registered. Please use list_group for checking.");
+            sprintf(res.server_message, "Couldn't create a group. The group name might be registered or doesn't enter group name.\n"
+                                        "Please use list_group for checking.\n");
             res.method = SERVER_MESSAGE;
             if (send(user->sockfd, &res, sizeof(struct Response), 0) < 0) {
                 fprintf(stderr, "Error: sending failed to creating group message failed.\n");
@@ -77,6 +79,8 @@ int commandHandler(struct User *user, struct Command *cmd) {
             return 1;
         }
 
+    } else if (cmd->type == COMMAND_NOT_FOUND) {
+        return 0;
     }
 
     return 0;
@@ -89,34 +93,27 @@ int commandHandler(struct User *user, struct Command *cmd) {
 static int createGroupHandler(struct User *user, char *group_name) {
     char        query[BUFSIZ];
     int         group_id;
-    MYSQL_RES   *result;
-    MYSQL_ROW   row;
     memset(query, 0, sizeof(query));
+
+    /*
+     * if group name is none
+     * ask user to input group name.
+     */
+    if (strcmp(group_name, "none") == 0) {
+        return -1;
+    }
 
     /*
      * Updating group_lists table with new group
      * and get the group id.
      */
     memset(query, 0, sizeof(query));
-    sprintf(query, "INSERT INTO group_lists(group_name, user_id, owner) VALUES ('%s', %d, '%s'); "
-                   "SELECT LAST_INSERT_ID();", group_name, user->user_id, user->name);
+    sprintf(query, "INSERT INTO group_lists(group_name, owner_id, owner) VALUES ('%s', %d, '%s'); ", group_name, user->user_id, user->name);
     if (mysql_query(user->db, query)) {
         fprintf(stderr, "Error: inserting new group to group_lists table failed: %s.\n", mysql_error(user->db));
         return -1;
     }
-    
-    result = mysql_store_result(user->db);
-    if (result == NULL) {
-        fprintf(stderr, "Error: fetching result from group_lists is falied: %s.\n", mysql_error(user->db));
-        return -1;
-    }
-
-    row = mysql_fetch_row(result);
-    if (mysql_errno(user->db) != 0) {
-        fprintf(stderr, "Error: fetching row from group lists failed: %s\n", mysql_error(user->db));
-        return -1;
-    }
-    group_id = atoi(row[0]);
+    group_id = mysql_insert_id(user->db);
     
     /*
      * Inserting a new row with user name, group name and group id.
@@ -227,6 +224,7 @@ static int listGroupHandler(struct User *user, char *arg) {
         }
 
     }
+    mysql_free_result(result);
 
     /*
      * informing user listing group end.

@@ -75,6 +75,7 @@ int serverHandler(int sockfd) {
  */
 static void serverMessageHandler(int sockfd, struct Response *res) {
     printf("%s", res->server_message);
+    fflush(stdout);
 }
 
 /*
@@ -134,9 +135,11 @@ static int listGroupHandler(int sockfd) {
     if (strcmp(res.server_message, "start list") == 0) {
 
         printf("group name\t\towner\n");
+        fflush(stdout);
 
         while (1) {
 
+            memset(&res, 0, sizeof(res));
             if (recv(sockfd, &res, sizeof(struct Response), 0) < 0) {
                 fprintf(stderr, "Error: receiving group lists from server failed.\n");
                 perror("recv");
@@ -148,7 +151,7 @@ static int listGroupHandler(int sockfd) {
             }
 
             printf("%s\t\t%s\n", res.message.groups, res.message.names);
-
+            fflush(stdout);
         }
 
     } else {

@@ -71,10 +71,12 @@ int login(struct User *user) {
     MYSQL_RES *result = mysql_store_result(user->db);
     if (result == NULL) {
         fprintf(stderr, "Error: retrieving result set: %s.\n", mysql_error(user->db));
+        mysql_free_result(result);
         return -1;
     }
 
     MYSQL_ROW row = mysql_fetch_row(result);
+    mysql_free_result(result);
     if (row == NULL) {
 
         if (mysql_errno(user->db) != 0) {
@@ -84,7 +86,6 @@ int login(struct User *user) {
 
         memset(&res, 0, sizeof(struct Response));
         sprintf(res.server_message, "User doesn't exsit.\n");
-        res.method = SERVER_MESSAGE;
         if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
             fprintf(stderr, "Error: sending login user exist failed.\n");
             perror("send");
@@ -198,6 +199,7 @@ int signUp(struct User *user) {
     }
 
     MYSQL_ROW row = mysql_fetch_row(result);
+    mysql_free_result(result);
     if (row == NULL) {
 
         if (mysql_errno(user->db) != 0) {

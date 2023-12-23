@@ -10,10 +10,18 @@ int main() {
 
     client_socket = sockConnection(&server);
     
-    if (LoginOrSignUpHandler(client_socket) < 0) {
-        fprintf(stderr, "Error: login or sign up failed.\n");
-        exit(EXIT_FAILURE);
+    while (1) {
+        int status;
+        if ((status = LoginOrSignUpHandler(client_socket)) < 0) {
+            fprintf(stderr, "Error: login or sign up failed.\n");
+            exit(EXIT_FAILURE);
+        } else if (status == 1) {
+            continue;;
+        } else {
+            break;
+        }
     }
+    
 
     if (serverHandler(client_socket) < 0) {
         fprintf(stderr, "Error: server handler failed.\n");
@@ -48,6 +56,7 @@ static int LoginOrSignUpHandler(int sockfd) {
             return -1;
         }
         printf("%s", request.request);
+        fflush(stdout);
 
         /*
          * Responing to server user's selection
@@ -65,6 +74,19 @@ static int LoginOrSignUpHandler(int sockfd) {
             return -1;
         }
 
+        memset(&response, 0, sizeof(struct Response));
+        if (recv(sockfd, &response, sizeof(struct Response), 0) < 0) {
+            fprintf(stderr, "Error: get server valid login or sign up selection message failed.\n");
+            perror("recv");
+            return -1;
+        }
+
+        if (strcmp(response.server_message, "valid") != 0) {
+            printf("invalid number, please try again.\n");
+            fflush(stdout);
+            return 1;
+        }
+
 
         /*
          * Receiving user name message from server
@@ -76,6 +98,7 @@ static int LoginOrSignUpHandler(int sockfd) {
             return -1;
         }
         printf("%s", request.request);
+        fflush(stdout);
 
         /*
          * Sending user name
@@ -103,6 +126,7 @@ static int LoginOrSignUpHandler(int sockfd) {
             return -1;
         }
         printf("%s", request.request);
+        fflush(stdout);
 
         /*
          * Sending user password
@@ -130,22 +154,23 @@ static int LoginOrSignUpHandler(int sockfd) {
             return -1; 
         }
         printf("%s", response.server_message);
+        fflush(stdout);
 
         /*
          * Break loop if login or sign up is successful.
          */
         if ((strcmp(response.server_message, login_success) == 0) || (strcmp(response.server_message, sign_up_success) == 0)) {
-            break;
+            return 0;
         }
 
         /*
          * Continue loop if login or sign up is failed.
          */
         if ((strcmp(response.server_message, login_failed) == 0) || (strcmp(response.server_message, sign_up_failed) == 0)) {
-            continue;
+            return 1;
         }
         
     }
 
-    return 0;
+    return -1;
 }
