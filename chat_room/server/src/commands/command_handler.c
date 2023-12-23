@@ -31,7 +31,7 @@ int commandHandler(struct User *user, struct Command *cmd) {
                 return -1;
             }
 
-            return -1;
+            return 0;
 
         } else {
 
@@ -80,7 +80,13 @@ int commandHandler(struct User *user, struct Command *cmd) {
         }
 
     } else if (cmd->type == COMMAND_NOT_FOUND) {
-        return 0;
+        memset(&res, 0, sizeof(struct Response));
+        sprintf(res.server_message, "command not found.\n");
+        res.method = SERVER_MESSAGE;
+        if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+            fprintf(stderr, "Error: sending command not found message failed.\n");
+            return -1;
+        }
     }
 
     return 0;
