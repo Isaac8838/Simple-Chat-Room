@@ -82,7 +82,10 @@ void* clientHandler(void* arg) {
             }
 
         } else {
-            // messageHandler(&user, user.group_id, req.request);
+            if (messageHandler(&user, user.group_id, req.request) < 0) {
+                fprintf(stderr, "Error: Handling client message failed.\n");
+                break;
+            }
         }
 
     }
@@ -91,6 +94,7 @@ void* clientHandler(void* arg) {
     pthread_mutex_lock(&mutex);
     User_online--;
     pthread_mutex_unlock(&mutex);
+    mysql_close(user.db);
     pthread_exit(NULL);
 }
 
@@ -162,6 +166,7 @@ static int LoginOrSignUpHandler(struct User *user) {
             perror("send");
             return -1;
         }
+        usleep(1);
 
         int status;
         if ((status = login(&(*user))) < 0) {

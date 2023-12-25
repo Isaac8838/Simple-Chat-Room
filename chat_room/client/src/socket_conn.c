@@ -24,7 +24,5 @@ int sockConnection(struct sockaddr_in *server) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Connecting to server: %s:%u\n", inet_ntoa(server->sin_addr), ntohs(server->sin_port));
-
     return sockfd;
 }

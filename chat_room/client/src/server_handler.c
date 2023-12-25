@@ -3,6 +3,7 @@
 static void serverMessageHandler(int sockfd, struct Response *res);
 static int logoutHandler(int sockfd);
 static int listGroupHandler(int sockfd);
+static int joinGroupHandler(int sockfd, int user_id);
 
 /*
  * Handling user request and response from server.
@@ -63,6 +64,18 @@ int serverHandler(int sockfd) {
                 return -1;
             }
 
+        } else if (res.method == MESSAGE) {
+            continue;
+        } else if (res.method == JOIN_GROUP) {
+
+            if (joinGroupHandler(sockfd, res.user_id) < 0) {
+                fprintf(stderr, "Error: joining group faild.\n");
+                return -1;
+            }
+
+        } else if (res.method == ERROR) {
+            printf("Error happened.\n");
+            return -1;
         }
 
     }
@@ -125,6 +138,9 @@ static int logoutHandler(int sockfd) {
 static int listGroupHandler(int sockfd) {
     struct Response res;
     
+    /*
+     * Receiving start list message from server.
+     */
     memset(&res, 0, sizeof(struct Response));
     if (recv(sockfd, &res, sizeof(struct Response), 0) < 0) {
         fprintf(stderr, "Error: receiving start lists message failed.\n");
@@ -134,7 +150,7 @@ static int listGroupHandler(int sockfd) {
 
     if (strcmp(res.server_message, "start list") == 0) {
 
-        printf("group name\t\towner\n");
+        printf("%-20s%-20s\n", "Group name", "Owner");
         fflush(stdout);
 
         while (1) {
@@ -150,7 +166,7 @@ static int listGroupHandler(int sockfd) {
                 break;
             }
 
-            printf("%s\t\t%s\n", res.message.groups, res.message.names);
+            printf("%-20.*s%-20.*s\n", (int)sizeof(res.message.groups), res.message.groups, (int)sizeof(res.message.names), res.message.names);
             fflush(stdout);
         }
 
@@ -160,4 +176,18 @@ static int listGroupHandler(int sockfd) {
     
     return 0;
 
+}
+
+static int joinGroupHandler(int sockfd, int user_id) {
+    pthread_t thread;
+
+    int *arg = malloc(sizeof(int));
+    *arg = user_id;
+
+    if (pthread_create(&thread, NULL, groupMessageHandler, (void *)arg) != 0) {
+        fprintf(stderr, "Error: create group message handler failed.\n");
+        return -1;
+    }
+
+    return 0;
 }

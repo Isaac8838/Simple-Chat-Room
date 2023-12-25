@@ -23,7 +23,14 @@
 #define SERVER_MESSAGE  12
 #define CLIENT_MESSAGE  13
 #define LOGIN_OR_SIGNUP 14
+#define MESSAGE 15
+#define ERROR 16
 
 int serverHandler(int sockfd);
+
+/*
+ * Handling group message from server
+ */
+void* groupMessageHandler();
 
 #endif

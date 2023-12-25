@@ -14,6 +14,7 @@ int main() {
         int status;
         if ((status = LoginOrSignUpHandler(client_socket)) < 0) {
             fprintf(stderr, "Error: login or sign up failed.\n");
+            close(client_socket);
             exit(EXIT_FAILURE);
         } else if (status == 1) {
             continue;;
@@ -25,6 +26,7 @@ int main() {
 
     if (serverHandler(client_socket) < 0) {
         fprintf(stderr, "Error: server handler failed.\n");
+        close(client_socket);
         exit(EXIT_FAILURE);
     }
 

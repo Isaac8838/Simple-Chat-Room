@@ -30,6 +30,8 @@
 #define SERVER_MESSAGE  12
 #define CLIENT_MESSAGE  13
 #define LOGIN_OR_SIGNUP 14
+#define MESSAGE 15
+#define ERROR 16
 
 /* 
  * client handler for handle client's commands or messages 
@@ -49,10 +51,11 @@ int signUp(struct User *user);
  * command handler
  */
 int commandHandler(struct User *user, struct Command *cmd);
+void* groupMessageHandler(void* arg);
 
 /*
  * message handler
  */
-void messageHandler(struct User *user, int group_id, char *message);
+int messageHandler(struct User *user, int group_id, char *message);
 
 #endif

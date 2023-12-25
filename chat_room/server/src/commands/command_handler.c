@@ -3,6 +3,7 @@
 static int createGroupHandler(struct User *user, char *group_name);
 static int listGroupHandler(struct User *user, char *arg);
 static int logout(struct User *user);
+static int joinGroup(struct User *user, char *group_name);
 
 /*
  * Handling commands
@@ -49,7 +50,8 @@ int commandHandler(struct User *user, struct Command *cmd) {
 
         }
     } else if (cmd->type == LIST_GROUP) {
-        if (listGroupHandler(&(*user), cmd->arg) < 0) {
+        int status;
+        if ((status = listGroupHandler(&(*user), cmd->arg)) < 0) {
             fprintf(stderr, "Error: listing group is failed.\n");
             
             /*
@@ -66,7 +68,16 @@ int commandHandler(struct User *user, struct Command *cmd) {
 
             return -1;
 
-        }
+        } else if (status == 1) {
+            memset(&res, 0, sizeof(res));
+            res.method = ERROR;
+            if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+                fprintf(stderr, "Error: sending error method from join group failed.\n");
+                perror("send");
+                return -1;
+            }
+            return -1;
+        } 
     } else if (cmd->type == LOGOUT) {
 
         /*
@@ -86,6 +97,31 @@ int commandHandler(struct User *user, struct Command *cmd) {
         if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
             fprintf(stderr, "Error: sending command not found message failed.\n");
             return -1;
+        }
+    } else if (cmd->type == JOIN_GROUP) {
+        int status;
+        if ((status = joinGroup(user, cmd->arg)) < 0) {
+            fprintf(stderr, "Error: joining group failed.\n");
+
+            memset(&res, 0, sizeof(res));
+            res.method = ERROR;
+            if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+                fprintf(stderr, "Error: sending error method from join group failed.\n");
+                perror("send");
+                return -1;
+            }
+
+            return -1;
+        } else if (status == 1) {
+            memset(&res, 0, sizeof(res));
+            sprintf(res.server_message, "Group not found.\nPlease try again.\n");
+            res.method = SERVER_MESSAGE;
+            if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+                fprintf(stderr, "Error: send joinGroup error message failed.\n");
+                perror("send");
+                return -1;
+            }
+            return 0;
         }
     }
 
@@ -148,7 +184,7 @@ static int createGroupHandler(struct User *user, char *group_name) {
 
 /*
  * Listing groups from group lists table
- * return -1 for error, otherwise 0.
+ * return -1 for error, 1 for unexpected sql error, otherwise 0.
  */
 static int listGroupHandler(struct User *user, char *arg) {
     struct Response res;
@@ -188,13 +224,13 @@ static int listGroupHandler(struct User *user, char *arg) {
      */
     if (mysql_query(user->db, query)) {
         fprintf(stderr, "Error: fetching groups from group lists failed: %s.\n", mysql_error(user->db));
-        return -1;
+        return 1;
     }
 
     result = mysql_store_result(user->db);
     if (result == NULL) {
         fprintf(stderr, "Error: fetching result set from group lists failed: %s.\n", mysql_error(user->db));
-        return -1;
+        return 1;
     }
 
     /*
@@ -206,7 +242,7 @@ static int listGroupHandler(struct User *user, char *arg) {
     if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
         fprintf(stderr, "Error: sending start response from group lists is failed.\n");
         perror("send");
-        return -1;
+        return 1;
     }
 
     /*
@@ -216,7 +252,7 @@ static int listGroupHandler(struct User *user, char *arg) {
 
         if (mysql_errno(user->db) != 0) {
             fprintf(stderr, "Error: fetching group from group lists failed: %s.\n", mysql_error(user->db));
-            return -1;
+            return 1;
         }
 
         memset(&res, 0, sizeof(struct Response));
@@ -229,6 +265,7 @@ static int listGroupHandler(struct User *user, char *arg) {
             return -1;
         }
 
+        usleep(1);
     }
     mysql_free_result(result);
 
@@ -257,6 +294,8 @@ static int logout(struct User *user) {
     struct Request  req;
     user->status = USER;
     user->group_id = -1;
+
+    sleep(1);
 
     /*
      * Sending logout method
@@ -295,4 +334,75 @@ static int logout(struct User *user) {
 
     return 0;
 
+}
+
+/*
+ * Joining a group
+ * return -1 for error, 1 for group not found, otherwise 0.
+ */
+static int joinGroup(struct User *user, char *group_name) {
+    struct Response     res;
+    MYSQL_RES           *result;
+    MYSQL_ROW           row;
+    char                query[BUFSIZ];
+    pthread_t           thread;
+
+    if (strcmp(group_name, "none") == 0) {
+        memset(&res, 0, sizeof(res));
+        sprintf(res.server_message, "Please enter group name.\nUsage: !join_group name_of_group\n");
+        res.method = SERVER_MESSAGE;
+        if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+            fprintf(stderr, "Error: sending join group, group name is none failed.\n");
+            perror("send");
+            return -1;
+        }
+
+        return 0;
+    }
+
+    
+
+    /*
+     * Checking whether the group is exist?
+     */
+    memset(query, 0, sizeof(query));
+    sprintf(query, "SELECT id FROM group_lists WHERE group_name = '%s';", group_name);
+    if (mysql_query(user->db, query)) {
+        fprintf(stderr, "Error: searching group from group lists failed: %s.\n", mysql_error(user->db));
+        return -1;
+    }
+    
+    result = mysql_store_result(user->db);
+    if (result == NULL) {
+        fprintf(stderr, "Error: fetching group name from group lists result failed: %s.\n", mysql_error(user->db));
+        return -1;
+    }
+
+    row = mysql_fetch_row(result);
+    mysql_free_result(result);
+    if (row == NULL) {
+        return 1;
+    }
+
+    (&(*user))->status = GROUP;
+    (&(*user))->group_id = atoi(row[0]);
+
+    if (pthread_create(&thread, NULL, groupMessageHandler, (void *)user)) {
+        fprintf(stderr, "create group message handler failed.\n");
+        return -1;
+    }
+
+    /*
+     * Sending join group method
+     */
+    memset(&res, 0, sizeof(res));
+    res.method = JOIN_GROUP;
+    res.user_id = user->user_id;
+    if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+        fprintf(stderr, "Error: sending join group method failed.\n");
+        perror("send");
+        return -1;
+    }
+
+    return 0;
 }
