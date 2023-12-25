@@ -4,6 +4,7 @@ static int createGroupHandler(struct User *user, char *group_name);
 static int listGroupHandler(struct User *user, char *arg);
 static int logout(struct User *user);
 static int joinGroup(struct User *user, char *group_name);
+static int leaveGroup(struct User *user);
 
 /*
  * Handling commands
@@ -100,7 +101,7 @@ int commandHandler(struct User *user, struct Command *cmd) {
         }
     } else if (cmd->type == JOIN_GROUP) {
         int status;
-        if ((status = joinGroup(user, cmd->arg)) < 0) {
+        if ((status = joinGroup(&(*user), cmd->arg)) < 0) {
             fprintf(stderr, "Error: joining group failed.\n");
 
             memset(&res, 0, sizeof(res));
@@ -122,6 +123,11 @@ int commandHandler(struct User *user, struct Command *cmd) {
                 return -1;
             }
             return 0;
+        }
+    } else if (cmd->type == LEAVE_GROUP) {
+        if (leaveGroup(&(*user)) < 0) {
+            fprintf(stderr, "Error: leaving group failed.\n");
+            return -1;
         }
     }
 
@@ -400,6 +406,36 @@ static int joinGroup(struct User *user, char *group_name) {
     res.user_id = user->user_id;
     if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
         fprintf(stderr, "Error: sending join group method failed.\n");
+        perror("send");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int leaveGroup(struct User *user) {
+    struct Response res;
+
+    if (user->status == USER) {
+        memset(&res, 0, sizeof(res));
+        sprintf(res.server_message, "You Don't have joined a group!\n");
+        res.method = SERVER_MESSAGE;
+        if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+            fprintf(stderr, "Error: sending leave group successful message failed.\n");
+            perror("send");
+            return -1;
+        }
+        return 0;
+    }
+
+    user->status = USER;
+    user->group_id = -1;
+
+    memset(&res, 0, sizeof(res));
+    sprintf(res.server_message, "Leaving group successfully!\n");
+    res.method = SERVER_MESSAGE;
+    if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+        fprintf(stderr, "Error: sending leave group successful message failed.\n");
         perror("send");
         return -1;
     }

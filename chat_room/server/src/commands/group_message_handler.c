@@ -51,7 +51,6 @@ void *groupMessageHandler(void* arg) {
     while (1) {
 
         if (user->status == USER) {
-            memset(&res, 0, sizeof(res));
             if (closeHandler(client_socket) < 0) {
                 fprintf(stderr, "Error: close handler failed.\n");
                 break;
@@ -127,6 +126,12 @@ static int groupSockInit(struct sockaddr_in *server, struct User *user) {
     if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
         fprintf(stderr, "Error: creating group server socket failed.\n");
         perror("socket");
+        return -1;
+    }
+
+    int opt = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        perror("setsockopt");
         return -1;
     }
 

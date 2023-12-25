@@ -17,6 +17,12 @@ int socketInit(struct sockaddr_in *server) {
         exit(EXIT_FAILURE);
     }
 
+    int opt = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+
     if (bind(sockfd, (struct sockaddr *)&(*server), sizeof(*server)) < 0) {
         fprintf(stderr, "Error: binding server address and port failed.\n");
         perror("bind");
