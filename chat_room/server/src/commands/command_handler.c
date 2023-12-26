@@ -366,6 +366,19 @@ static int joinGroup(struct User *user, char *group_name) {
         return 0;
     }
 
+    if (user->status != USER) {
+        memset(&res, 0, sizeof(res));
+        sprintf(res.server_message, "Please leave group first.\n");
+        res.method = SERVER_MESSAGE;
+        if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+            fprintf(stderr, "Error: sending join group, group name is none failed.\n");
+            perror("send");
+            return -1;
+        }
+
+        return 0;
+    }
+
     
 
     /*
