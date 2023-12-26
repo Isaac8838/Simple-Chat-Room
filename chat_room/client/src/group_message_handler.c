@@ -2,6 +2,9 @@
 
 static int sockConn(struct sockaddr_in *server, int user_id);
 
+/*
+ * Handler will connect to server socket and receiving the message from server.
+ */
 void *groupMessageHandler(void* arg) {
     pthread_detach(pthread_self());
     int                 user_id = *((int *)arg);
@@ -10,11 +13,18 @@ void *groupMessageHandler(void* arg) {
     struct Response     res;
     free(arg);
 
+    /*
+     * Connecting to server
+     */
     if ((sockfd = sockConn(&server, user_id)) < 0) {
         fprintf(stderr, "Error: connecting to group message server failed.\n");
         pthread_exit(NULL);
     }
 
+    /*
+     * Receiving message from server and output.
+     * If server send "close" then terminate this handler.
+     */
     while (1) {
         memset(&res, 0, sizeof(res));
         if (recv(sockfd, &res, sizeof(res), 0) < 0) {
@@ -35,6 +45,9 @@ void *groupMessageHandler(void* arg) {
     pthread_exit(NULL);
 }
 
+/*
+ * Setting socket connection
+ */
 static int sockConn(struct sockaddr_in *server, int user_id) {
     int sockfd;
 

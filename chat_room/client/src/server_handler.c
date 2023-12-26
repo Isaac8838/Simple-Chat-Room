@@ -4,6 +4,7 @@ static void serverMessageHandler(int sockfd, struct Response *res);
 static int logoutHandler(int sockfd);
 static int listGroupHandler(int sockfd);
 static int joinGroupHandler(int sockfd, int user_id);
+static int listMailHandler(int sockfd);
 
 /*
  * Handling user request and response from server.
@@ -76,6 +77,11 @@ int serverHandler(int sockfd) {
         } else if (res.method == ERROR) {
             printf("Error happened.\n");
             return -1;
+        } else if (res.method == LIST_MAIL) {
+            if (listMailHandler(sockfd) < 0) {
+                fprintf(stderr, "Error: list mails faild.\n");
+                return -1;
+            }
         }
 
     }
@@ -178,6 +184,10 @@ static int listGroupHandler(int sockfd) {
 
 }
 
+/*
+ * Handling join a group
+ * Handler will create a new thread dealing with messages.
+ */
 static int joinGroupHandler(int sockfd, int user_id) {
     pthread_t thread;
 
@@ -190,4 +200,28 @@ static int joinGroupHandler(int sockfd, int user_id) {
     }
 
     return 0;
+}
+
+static int listMailHandler(int sockfd) {
+    struct Response res;
+
+    printf("%-20s%-20s\n", "sender", "message");
+    fflush(stdout);
+    while (1) {
+        memset(&res, 0, sizeof(res));
+        if (recv(sockfd, &res, sizeof(res), 0) < 0) {
+            fprintf(stderr, "Error: receiving list mail message failed.\n");
+            return -1;
+        }
+
+        if (strcmp(res.server_message, "end") == 0) {
+            break;
+        }
+
+        printf("%-20s%-20s\n", res.message.names, res.message.messages);
+        fflush(stdout);
+    }
+
+    return 0;
+
 }
