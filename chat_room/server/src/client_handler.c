@@ -166,7 +166,6 @@ static int LoginOrSignUpHandler(struct User *user) {
             perror("send");
             return -1;
         }
-        usleep(1);
 
         int status;
         if ((status = login(&(*user))) < 0) {

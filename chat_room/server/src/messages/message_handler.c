@@ -4,8 +4,10 @@
  * Handling user message and store in group message table.
  */
 int messageHandler(struct User *user, int group_id, char *message) {
-    char query[BUFSIZ];
+    char            query[BUFSIZ];
     struct Response res;
+    MYSQL_RES       *result;
+    MYSQL_ROW       row;
 
     /*
      * If user doesn't have join a group
@@ -25,6 +27,39 @@ int messageHandler(struct User *user, int group_id, char *message) {
         return 0;
 
     }
+
+    /*
+     * If group has been deleted
+     * set user to USER mode
+     */
+    memset(query, 0, sizeof(query));
+    sprintf(query, "SELECT * FROM group_lists WHERE id = %d;", group_id);
+    if (mysql_query(user->db, query)) {
+        fprintf(stderr, "Error: searching group from group lists in message handler failed: %s.\n", mysql_error(user->db));
+        return -1;
+    }
+    result = mysql_store_result(user->db);
+    if (result == NULL) {
+        fprintf(stderr, "Error: fetching result from message handler failed: %s.\n", mysql_error(user->db));
+        return -1;
+    }
+    row = mysql_fetch_row(result);
+    mysql_free_result(result);
+    if (row == NULL) {
+        user->status = USER;
+        user->group_id = -1;
+        memset(&res, 0, sizeof(res));
+        sprintf(res.server_message, "Group has been deleted.\n");
+        res.method = SERVER_MESSAGE;
+        if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+            fprintf(stderr, "Error: sending group has been deleted from message handler failed.\n");
+            perror("send");
+            return -1;
+        }
+
+        return 0;
+    }
+    
 
     /*
      * Insert message to group message table.

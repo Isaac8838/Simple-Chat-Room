@@ -8,6 +8,7 @@ static int leaveGroup(struct User *user);
 static int mailto(struct User *user, int receiver_id, char *receiver, char *group_name);
 static int invite(struct User *user, char *name);
 static int listMail(struct User *user);
+static int deleteGroup(struct User *user);
 
 /*
  * Handling commands
@@ -135,12 +136,55 @@ int commandHandler(struct User *user, struct Command *cmd) {
     } else if (cmd->type == INVITE) {
         if (invite(&(*user), cmd->arg) < 0) {
             fprintf(stderr, "Error: invite failed.\n");
+
+            memset(&res, 0, sizeof(res));
+            res.method = ERROR;
+            if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+                fprintf(stderr, "Error: sending error method from join group failed.\n");
+                perror("send");
+                return -1;
+            }
+
             return -1;
         }
     } else if (cmd->type == LIST_MAIL) {
         if (listMail(&(*user)) < 0) {
             fprintf(stderr, "Error: listing mails failed.\n");
+            
+            memset(&res, 0, sizeof(res));
+            res.method = ERROR;
+            if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+                fprintf(stderr, "Error: sending error method from join group failed.\n");
+                perror("send");
+                return -1;
+            }
+
             return -1;
+        }
+    } else if (cmd->type == DELETE_GROUP) {
+        int status;
+        if ((status = deleteGroup(&(*user))) < 0) {
+            fprintf(stderr, "Error: deleting group failed.\n");
+            
+            memset(&res, 0, sizeof(res));
+            res.method = ERROR;
+            if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+                fprintf(stderr, "Error: sending error method from join group failed.\n");
+                perror("send");
+                return -1;
+            }
+            
+            return -1;
+        } else if (status == 1) {
+            memset(&res, 0, sizeof(res));
+            sprintf(res.server_message, "Deleting group failed.\nMake sure you are group owner.\nPlease try again.\n");
+            res.method = SERVER_MESSAGE;
+            if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+                fprintf(stderr, "Error: sending deleting failed failed.\n");
+                perror("send");
+                return -1;
+            }
+            return 0;
         }
     }
 
@@ -212,6 +256,31 @@ static int listGroupHandler(struct User *user, char *arg) {
     MYSQL_ROW       rows;
 
     /*
+     * Getting the number of groups
+     * If with "self" argument
+     * fetching the group that have joined
+     * otherwise fetching all of the groups
+     */
+    memset(query, 0, sizeof(query));
+    if (strcmp(arg, "self") == 0) {
+        sprintf(query, "SELECT user_groups.group_name, owner FROM user_groups "
+                       "JOIN group_lists ON group_lists.id = user_groups.group_id "
+                       "WHERE user_id = %d;", user->user_id);
+    } else if (strcmp(arg, "none") == 0) {
+        sprintf(query, "SELECT group_name, owner FROM group_lists;");
+    } else {
+        memset(&res, 0, sizeof(res));
+        sprintf(res.server_message, "Invaild argument for list group.\nPlease try again.\n");
+        res.method = SERVER_MESSAGE;
+        if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+            fprintf(stderr, "Error: sending invalid argument in list group failed.\n");
+            perror("send");
+            return -1;
+        }
+        return 0;
+    }
+
+    /*
      * Sending list group method
      */
     memset(&res, 0, sizeof(struct Response));
@@ -220,22 +289,6 @@ static int listGroupHandler(struct User *user, char *arg) {
         fprintf(stderr, "Error: sending group list method failed.\n");
         perror("send");
         return -1;
-    }
-
-
-    /*
-     * Getting the number of groups
-     * If with "self" argument
-     * fetching the group that have joined
-     * otherwise fetching all of the groups
-     */
-    memset(query, 0, sizeof(query));
-    if (strcmp(arg, "self") == 0) {
-        sprintf(query, "SELECT group_name, owner FROM user_groups "
-                       "JOIN group_lists ON group_lists.id = user_groups.group_id "
-                       "WHERE user_id = %d;", user->user_id);
-    } else if (strcmp(arg, "none") == 0) {
-        sprintf(query, "SELECT group_name, owner FROM group_lists;");
     }
 
     /*
@@ -457,7 +510,10 @@ static int joinGroup(struct User *user, char *group_name) {
     mysql_free_result(result);
     if (row == NULL) {
 
-        mailto(&(*user), owner_id, owner, group_name);
+        if (mailto(&(*user), owner_id, owner, group_name) < 0) {
+            fprintf(stderr, "Error: mailto failed.\n");
+            return -1;
+        }
 
         return 1;
     }
@@ -708,6 +764,68 @@ static int listMail(struct User *user) {
     sprintf(res.server_message, "end");
     if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
         fprintf(stderr, "Error: sending list mail end failed.\n");
+        return -1;
+    }
+
+    return 0;
+
+}
+
+/*
+ * Deleting group
+ * return -1 for error, otherwise 0.
+ */
+static int deleteGroup(struct User *user) {
+    struct Response res;
+    char            query[BUFSIZ];
+    MYSQL_RES       *result;
+    MYSQL_ROW       row;
+
+    /*
+     * If user haven't joined a group
+     * Ask user join group first.
+     */
+    if (user->status != GROUP) {
+        memset(&res, 0, sizeof(res));
+        sprintf(res.server_message, "You need to join a group to perfrom this action.\n");
+        res.method = SERVER_MESSAGE;
+        if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+            fprintf(stderr, "Error: sending join group first from delete group failed.\n");
+            perror("send");
+            return -1;
+        }
+        return 0;
+    }
+
+    /*
+     * Deleting group from group lists.
+     * return -1 for error, 1 for not owner, otherwise 0.
+     */
+    pthread_mutex_lock(&mutex);
+    memset(query, 0, sizeof(query));
+    sprintf(query, "DELETE FROM group_lists WHERE id = %d AND owner_id = %d;", user->group_id, user->user_id);
+    if (mysql_query(user->db, query) && mysql_errno(user->db)) {
+        fprintf(stderr, "Error: deleting group from group_lists failed: %s.\n", mysql_error(user->db));
+        return -1;
+    }
+    result = mysql_store_result(user->db);
+    if (result == NULL && mysql_errno(user->db)) {
+        fprintf(stderr, "Error: fetching result from delete group failed: %s.\n", mysql_error(user->db));
+        return -1;
+    }
+    row = mysql_fetch_row(result);
+    mysql_free_result(result);
+    pthread_mutex_unlock(&mutex);
+    if (row == NULL) {
+        return 1;
+    }
+
+    memset(&res, 0, sizeof(res));
+    sprintf(res.server_message, "Deleting group successfully!\n");
+    res.method = SERVER_MESSAGE;
+    if (send(user->sockfd, &res, sizeof(res), 0) < 0) {
+        fprintf(stderr, "Error: sending deleting successful message failed.\n");
+        perror("send");
         return -1;
     }
 

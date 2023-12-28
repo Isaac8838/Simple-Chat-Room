@@ -68,7 +68,5 @@ static int sockConn(struct sockaddr_in *server, int user_id) {
         return -1;
     }
 
-    printf("Connecting to server: %s:%u\n", inet_ntoa(server->sin_addr), ntohs(server->sin_port));
-
     return sockfd;
 }
