@@ -778,8 +778,7 @@ static int listMail(struct User *user) {
 static int deleteGroup(struct User *user) {
     struct Response res;
     char            query[BUFSIZ];
-    MYSQL_RES       *result;
-    MYSQL_ROW       row;
+    int             affected;
 
     /*
      * If user haven't joined a group
@@ -801,24 +800,17 @@ static int deleteGroup(struct User *user) {
      * Deleting group from group lists.
      * return -1 for error, 1 for not owner, otherwise 0.
      */
-    pthread_mutex_lock(&mutex);
     memset(query, 0, sizeof(query));
     sprintf(query, "DELETE FROM group_lists WHERE id = %d AND owner_id = %d;", user->group_id, user->user_id);
     if (mysql_query(user->db, query) && mysql_errno(user->db)) {
         fprintf(stderr, "Error: deleting group from group_lists failed: %s.\n", mysql_error(user->db));
         return -1;
     }
-    result = mysql_store_result(user->db);
-    if (result == NULL && mysql_errno(user->db)) {
-        fprintf(stderr, "Error: fetching result from delete group failed: %s.\n", mysql_error(user->db));
-        return -1;
-    }
-    row = mysql_fetch_row(result);
-    mysql_free_result(result);
-    pthread_mutex_unlock(&mutex);
-    if (row == NULL) {
+    affected = mysql_affected_rows(user->db);
+    if (affected == 0) {
         return 1;
     }
+    
 
     memset(&res, 0, sizeof(res));
     sprintf(res.server_message, "Deleting group successfully!\n");
