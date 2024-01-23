@@ -2,6 +2,10 @@
 
 Welcome to the Simple Chat Room, a straightforward platform for seamless communication. Here, you can easily connect with others, create and manage groups, and enjoy a hassle-free chat experience.
 
+**IMPORTANT**
+
+Please create table in MySQL database followed by provided schema.
+
 ## Basic Commands
 
 ### List Your Groups
